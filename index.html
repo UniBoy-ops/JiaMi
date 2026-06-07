@@ -4,36 +4,57 @@
     <meta charset="utf-8">
     <style>
         body{background:#111; color:#0f0; font-family: monospace; padding:20px;}
-        textarea{width:100%;height:140px;background:#000;color:#0f0;border:1px solid #090;}
+        textarea{width:100%;height:160px;background:#000;color:#0f0;border:1px solid #090;}
         button{padding:10px 20px;background:#060;color:#fff;border:0;cursor:pointer;margin:5px;}
     </style>
 </head>
 <body>
-    <h1>✅ 最终终极版：全流程 + Unicode + 自定义反码</h1>
+    <h1>😈 终极噩梦加密机（全流程最终版）</h1>
     输入：<textarea id="input">测试123 Hello!</textarea><br>
     <button onclick="goEnc()">加密</button><br>
-    最终加密结果：<textarea id="out1" readonly></textarea>
+    最终输出：<textarea id="out1" readonly></textarea>
 
 <script>
-// 0→O 1→|
+// 1. 0→O 1→|
 function toO(bit){
     return bit.replaceAll('0','O').replaceAll('1','|');
 }
 
-// 文本 → 二进制
+// 2. 文本→二进制
 function str2bin(s){
     let u = new TextEncoder().encode(s);
     return Array.from(u).map(b=>b.toString(2).padStart(8,'0')).join('');
 }
 
-// ====================== 完整加密流程 ======================
+// 3. 凯撒密码 +3
+function caesar(str){
+    return str.split('').map(c=>String.fromCharCode(c.charCodeAt(0)+3)).join('');
+}
+
+// 4. 字符 → 摩尔斯电码
+function charToMorse(c){
+    const map = {
+        'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---',
+        'K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-',
+        'U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..','0':'-----','1':'.----','2':'..---',
+        '3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.',
+        '{':'--..--','}':'...-.-','"':'.-..-.',',':'--..--',':':'---...','$':'...-..-',' ':'/'
+    };
+    let upper = c.toUpperCase();
+    return map[upper] || '';
+}
+function strToMorse(str){
+    return str.split('').map(c=>charToMorse(c)).join(' ');
+}
+
+// ====================== 终极加密流程 ======================
 function goEnc(){
     let txt = document.getElementById("input").value;
 
     // 1. 文本 → 二进制
     let bin = str2bin(txt);
 
-    // 2. O|替换
+    // 2. 0→O 1→|
     let o = toO(bin);
 
     // 3. JSON包装
@@ -49,27 +70,44 @@ function goEnc(){
     // 5. 16进制 → 3进制
     let num = BigInt("0x"+hex1);
     let ter = "";
-    while(num > 0n){
-        ter = (num % 3n).toString() + ter;
-        num = num / 3n;
+    while(num>0n){
+        ter = (num%3n).toString() + ter;
+        num = num/3n;
     }
 
-    // 6. 3进制 → Unicode 十六进制 (4位)
+    // 6. 3进制 → Unicode 4位16进制
     let unicodeHex = "";
     for(let i=0;i<ter.length;i++){
         let c = ter.charCodeAt(i);
-        unicodeHex += c.toString(16).padStart(4, "0");
+        unicodeHex += c.toString(16).padStart(4,"0");
     }
 
-    // ==============================================
-    // 7. 【你要的：自定义反码】 ! → }    z → $
-    // ==============================================
-    let finalStr = unicodeHex;
-    finalStr = finalStr.replaceAll("!", "}");  // ! 反码
-    finalStr = finalStr.replaceAll("z", "$");   // z 反码
+    // 7. 自定义反码 !→}   z→$
+    let anti = unicodeHex.replaceAll("!", "}").replaceAll("z", "$");
 
-    // 8. 输出 MZ + 最终字符串
-    document.getElementById("out1").value = "MZ" + finalStr;
+    // 8. 统计数字次数 → JSON
+    let count = {"0":0,"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"a":0,"b":0,"c":0,"d":0,"e":0,"f":0};
+    for(let ch of anti){ if(count[ch]!==undefined) count[ch]++; }
+    let countJson = JSON.stringify(count);
+
+    // 9. 统计JSON → 凯撒密码
+    let caesarStr = caesar(countJson);
+
+    // 10. 凯撒 → 摩尔斯电码
+    let morse = strToMorse(caesarStr);
+
+    // 11. 摩尔斯符号替换：-→1   .→0
+    let bitStr = morse.replace(/-/g,'1').replace(/\./g,'0').replace(/ /g,'');
+
+    // 12. 01比特流 → 16进制
+    let finalHex = '';
+    for(let i=0;i<bitStr.length;i+=4){
+        let seg = bitStr.slice(i,i+4).padEnd(4,'0');
+        finalHex += parseInt(seg,2).toString(16);
+    }
+
+    // 13. 最终输出 MZ + 十六进制
+    document.getElementById("out1").value = "MZ" + finalHex;
 }
 </script>
 </body>
